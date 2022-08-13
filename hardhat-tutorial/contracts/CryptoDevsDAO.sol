@@ -66,6 +66,10 @@ contract CryptoDevsDAO is Ownable
 
 	// Create a mapping of ID to Proposal
 	mapping(uint256 => Proposal) public proposals;
+
+    // Create a mapping to check an NFT isn't currently in an open proposal
+	mapping(uint256 => bool) public currentlyProposed;
+
 	// Number of proposals that have been created
 	uint256 public numProposals;
 
@@ -107,8 +111,10 @@ contract CryptoDevsDAO is Ownable
     function createProposal(uint256 _nftTokenId) external nftHolderOnly returns (uint256)
     {
         require(nftMarketplace.available(_nftTokenId), "NFT_NOT_FOR_SALE");
+        require(!currentlyProposed[_nftTokenId], "NFT already up for proposal");
         Proposal storage proposal = proposals[numProposals];
         proposal.nftTokenId = _nftTokenId;
+        currentlyProposed[_nftTokenId] = true;
         // Set the proposal's voting deadline to be (current time + 5 minutes)
         proposal.deadline = block.timestamp + 5 minutes;
 
@@ -182,6 +188,7 @@ contract CryptoDevsDAO is Ownable
             nftMarketplace.purchase{value: nftPrice}(proposal.nftTokenId);
         }
         proposal.executed = true;
+        currentlyProposed[proposal.nftTokenId] = false;
     }
 
     /// @dev withdrawEther allows the contract owner (deployer) to withdraw the ETH from the contract
